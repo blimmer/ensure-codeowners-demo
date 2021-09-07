@@ -26,7 +26,7 @@ jobs:
           echo '** Files changed in this PR:'
           cat /tmp/changed-files
       - name: Ensure Ownership
-        run: xargs npx --no-install codeowners-enforcer --quiet </tmp/changed-files > /tmp/unowned-files
+        run: xargs npx --no-install codeowners-enforcer -i "CODEOWNERS" --quiet </tmp/changed-files > /tmp/unowned-files
       - name: Set Unowned Files (on failure)
         id: unowned-files
         run: |
