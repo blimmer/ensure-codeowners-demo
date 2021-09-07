@@ -1,0 +1,50 @@
+name: Ensure Changed Files Have Owners
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ensure_changed_files_have_owners:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14.x
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Determine changed files
+        run: |
+          git checkout main
+          git checkout ${{ github.head_ref }}
+          git diff --name-only main > /tmp/changed-files
+          echo '** Files changed in this PR:'
+          cat /tmp/changed-files
+      - name: Ensure Ownership
+        run: xargs npx --no-install codeowners-enforcer --quiet </tmp/changed-files > /tmp/unowned-files
+      - name: Set Unowned Files (on failure)
+        id: unowned-files
+        run: |
+          sed -i 's/\x1b\[[0-9;]*m//g' /tmp/unowned-files
+          echo "::set-output name=files::$(tr '\n' ' ' < /tmp/unowned-files)"
+        if: ${{ failure() }}
+      - name: Post Unowned Files to PR (on failure)
+        uses: jungwinter/comment@v1
+        with:
+          type: create
+          issue_number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            You changed one or more files that were not covered by the CODEOWNERS file:
+
+            ```
+            ${{ steps.unowned-files.outputs.files }}
+            ```
+
+            Please update the CODEOWNERS file to add an owner. You can learn more about the CODEOWNERS file [here](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners).
+        if: ${{ failure() }}
