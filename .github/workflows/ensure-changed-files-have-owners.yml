@@ -15,7 +15,7 @@ jobs:
         run: |
           git checkout main
           git checkout ${{ github.head_ref }}
-          git diff --name-only main > /tmp/changed-files
+          git diff --name-only $(git merge-base --fork-point main) > /tmp/changed-files
           echo '** Files changed in this PR:'
           cat /tmp/changed-files
       - name: Download forked codeowners-enforcer
